@@ -30,31 +30,22 @@ STUDIO_LOGO_NAME = "studio_logo"  #to change the logo or as watermark
 # -------------------- PHOTOGRAPHERS --------------------
 PHOTOGRAPHER_CREDENTIALS = {
     "ashik": {"password": "1234", "event": "event_A"},
-    "royal": {"password": "5678", "event": "event_B"},
-    "frame": {"password": "9999", "event": "event_C"}
+    "rasin": {"password": "5678", "event": "event_B"},
+    "imran": {"password": "9999", "event": "event_C"}
 }
 
 # -------------------- QR GENERATION --------------------
+BASE_URL = os.getenv("BASE_URL", "http://127.0.0.1:5000")
+
 def generate_qr(event_name):
-    """Generate QR code for each event automatically"""
-    link = f"http://127.0.0.1:5000/guest/{event_name}"
-    qr_dir = os.path.join("static", "qr_codes")
-    qr_path = os.path.join(qr_dir, f"{event_name}.png")
-
-    # 🛠 Safely handle folder creation
-    if not os.path.exists(qr_dir):
-        os.makedirs(qr_dir)
-
-    # 🧹 If old QR already exists, overwrite it safely
-    if os.path.exists(qr_path):
-        os.remove(qr_path)
-
+    """Generate unique QR code for each event automatically"""
+    link = f"{BASE_URL}/guest/{event_name}"
+    qr_path = f"static/qr_codes/{event_name}.png"
+    os.makedirs("static/qr_codes", exist_ok=True)
     img = qrcode.make(link)
     img.save(qr_path)
     print(f"✅ QR Generated for {event_name}: {link}")
     return qr_path, link
-
-
 # -------------------- AUTO REFRESH --------------------
 def auto_refresh(interval=300):
     while True:
