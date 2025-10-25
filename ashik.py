@@ -196,6 +196,9 @@ def guest(event_name):
                 print(f"Error comparing {img_url}: {err}")
 
     return render_template('result.html', matches=matches, event=event_name)
+@app.route("/ping")
+def ping():
+    return "pong",200
 
 # -------------------- MAIN --------------------
 if __name__ == '__main__':
