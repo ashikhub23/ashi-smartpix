@@ -199,5 +199,6 @@ def guest(event_name):
 
 # -------------------- MAIN --------------------
 if __name__ == '__main__':
-    print("🚀 Wedding QR Business System running on http://127.0.0.1:5000")
-    app.run(debug=True)
+    port = int(os.environ.get("PORT",5000))
+    print(f"🚀 Wedding QR Business System running on port {port}")
+    app.run(host="0.0.0.0",port=port,debug=False)
