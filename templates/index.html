@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>💍 Wedding Photo Finder</title>
+  <style>
+    body {
+      margin: 0;
+      font-family: "Poppins", sans-serif;
+      text-align: center;
+      background: linear-gradient(135deg, #fff0f5, #fff9f2);
+      color: #333;
+      overflow-x: hidden;
+    }
+
+    h1 {
+      margin-top: 25px;
+      font-size: 2.3rem;
+      color: #b83b5e;
+      text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+    }
+
+    video {
+      margin-top: 20px;
+      width: 70%;
+      max-width: 400px;
+      border-radius: 20px;
+      border: 4px solid #ff6b81;
+      box-shadow: 0 0 25px rgba(255, 107, 129, 0.3);
+    }
+
+    button {
+      background: linear-gradient(90deg, #ff6b81, #ff9a8b);
+      border: none;
+      color: white;
+      padding: 14px 28px;
+      font-size: 18px;
+      border-radius: 30px;
+      margin-top: 25px;
+      cursor: pointer;
+      box-shadow: 0 0 20px rgba(255, 107, 129, 0.4);
+      transition: all 0.3s ease;
+    }
+
+    button:hover {
+      transform: scale(1.05);
+    }
+
+    #spinner {
+      display: none;
+      margin-top: 25px;
+      font-size: 18px;
+      color: #ff6b81;
+    }
+
+    .loader {
+      border: 5px solid #f3f3f3;
+      border-top: 5px solid #ff6b81;
+      border-radius: 50%;
+      width: 40px;
+      height: 40px;
+      animation: spin 1s linear infinite;
+      margin: 10px auto;
+    }
+
+    @keyframes spin {
+      0% {
+        transform: rotate(0deg);
+      }
+      100% {
+        transform: rotate(360deg);
+      }
+    }
+
+    #results {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 20px;
+      margin-top: 30px;
+      padding: 0 20px;
+    }
+
+    .match-card {
+      background: white;
+      border-radius: 15px;
+      padding: 10px;
+      box-shadow: 0 2px 15px rgba(0, 0, 0, 0.1);
+      width: 180px;
+      text-align: center;
+      transition: transform 0.2s;
+    }
+
+    .match-card:hover {
+      transform: scale(1.05);
+    }
+
+    .match-card img {
+      width: 100%;
+      border-radius: 12px;
+    }
+
+    .download-btn {
+      display: block;
+      margin-top: 8px;
+      text-decoration: none;
+      background: linear-gradient(90deg, #6a0572, #b83b5e);
+      color: white;
+      padding: 6px 10px;
+      border-radius: 6px;
+      font-size: 14px;
+      font-weight: 500;
+    }
+
+    #noMatch {
+      display: none;
+      font-size: 18px;
+      margin-top: 30px;
+      color: #ff4757;
+    }
+
+    #popup {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.7);
+      justify-content: center;
+      align-items: center;
+      z-index: 100;
+    }
+
+    #popup-content {
+      background: white;
+      border-radius: 20px;
+      padding: 30px;
+      text-align: center;
+      width: 300px;
+      animation: fadeIn 0.4s ease;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: scale(0.9); }
+      to { opacity: 1; transform: scale(1); }
+    }
+    button {
+  background-color: #e63946;
+  color: white;
+  padding: 12px 20px;
+  border: none;
+  border-radius: 8px;
+  font-size: 16px;
+  margin-top: 10px;
+  cursor: pointer;
+  width: 90%;
+  max-width: 300px;
+}
+
+button:hover {
+  background-color: #d62828;
+}
+
+@media (max-width: 768px) {
+  h1 {
+    font-size: 1.5rem;
+  }
+  #camera {
+    width: 100%;
+  }
+}
+
+  </style>
+</head>
+
+<body>
+  <h1>💍 ASHI SMARTPix</h1>
+  <p>Take a selfie to find your special memories instantly 💞</p>
+
+  <video id="camera" autoplay playsinline
+    style="width: 90%; max-width: 400px; border: 3px solid #e63946; border-radius: 10px; box-shadow: 0 4px 10px rgba(0,0,0,0.3);">
+</video>
+
+  <canvas id="canvas" style="display:none;"></canvas>
+
+  <br />
+  <button id="captureBtn">🎯 Capture & Find Photos</button>
+
+  <div id="spinner">
+    <div class="loader"></div>
+    <p>✨ Scanning your memories... Please wait 💞</p>
+  </div>
+
+  <div id="results"></div>
+  <p id="noMatch">😔 No matching photos found. Try again!</p>
+
+  <!-- Match Found Popup -->
+  <div id="popup">
+    <div id="popup-content">
+      <h2>🎉 Match Found!</h2>
+      <p>Your photos are ready below 💕</p>
+      <button onclick="closePopup()">OK</button>
+    </div>
+  </div>
+
+  <script>
+    const video = document.getElementById("camera");
+    const canvas = document.getElementById("canvas");
+    const spinner = document.getElementById("spinner");
+    const captureBtn = document.getElementById("captureBtn");
+    const resultsDiv = document.getElementById("results");
+    const noMatch = document.getElementById("noMatch");
+    const popup = document.getElementById("popup");
+
+    // Start camera
+    async function startCamera() {
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+        video.srcObject = stream;
+      } catch (err) {
+        alert("⚠️ Please allow camera access to continue.");
+      }
+    }
+
+    startCamera();
+
+    // Close popup
+    function closePopup() {
+      popup.style.display = "none";
+    }
+
+    // Capture selfie
+    captureBtn.addEventListener("click", async () => {
+      resultsDiv.innerHTML = "";
+      noMatch.style.display = "none";
+      spinner.style.display = "block";
+
+      const context = canvas.getContext("2d");
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+      context.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+      // Stop camera
+      const stream = video.srcObject;
+      if (stream) stream.getTracks().forEach(track => track.stop());
+      video.style.display = "none";
+
+      canvas.toBlob(async (blob) => {
+        const formData = new FormData();
+        formData.append("image", blob, "selfie.jpg");
+
+        try {
+          const res = await fetch("/upload", {
+            method: "POST",
+            body: formData,
+          });
+
+          const data = await res.json();
+          spinner.style.display = "none";
+
+          if (data.status === "success") {
+            popup.style.display = "flex"; // show popup
+            resultsDiv.innerHTML = "";
+            data.matches.forEach(path => {
+              const card = document.createElement("div");
+              card.classList.add("match-card");
+              card.innerHTML = `
+                <img src="/static/${path}" alt="Match">
+                <a class="download-btn" href="/static/${path}" download>⬇ Download</a>
+              `;
+              resultsDiv.appendChild(card);
+            });
+          } else {
+            noMatch.style.display = "block";
+          }
+        } catch (err) {
+          spinner.style.display = "none";
+          alert("❌ Server error! Please try again.");
+        }
+      }, "image/jpeg");
+    });
+  </script>
+</body>
+</html>

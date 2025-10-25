@@ -1,0 +1,146 @@
+/* ---------- GLOBAL RESET ---------- */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  font-family: "Poppins", sans-serif;
+}
+
+body {
+  background: linear-gradient(135deg, #fdfbfb, #ebedee);
+  color: #2c2c2c;
+  min-height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  padding: 40px 15px;
+}
+
+/* ---------- MAIN CONTAINER ---------- */
+.container {
+  background: #fff;
+  border-radius: 20px;
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+  padding: 40px 30px;
+  width: 100%;
+  max-width: 600px;
+  text-align: center;
+  animation: fadeIn 1s ease;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* ---------- TITLES ---------- */
+h1 {
+  font-family: "Playfair Display", serif;
+  font-size: 2rem;
+  color: #3c3c3c;
+  margin-bottom: 10px;
+}
+
+p {
+  font-size: 1rem;
+  color: #666;
+  margin-bottom: 30px;
+}
+
+/* ---------- BUTTONS ---------- */
+button {
+  background: #7a4b9b;
+  color: #fff;
+  border: none;
+  outline: none;
+  padding: 12px 20px;
+  margin: 10px;
+  border-radius: 30px;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 5px 10px rgba(122, 75, 155, 0.3);
+}
+
+button:hover {
+  background: #622f82;
+  transform: translateY(-2px);
+}
+
+#actions {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+/* ---------- RESULTS SECTION ---------- */
+#results {
+  margin-top: 20px;
+}
+
+#resultTitle {
+  font-size: 1.4rem;
+  font-weight: 600;
+  color: #3c3c3c;
+  margin-bottom: 20px;
+}
+
+/* ---------- GALLERY GRID ---------- */
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 15px;
+}
+
+.photoCard {
+  background: #fafafa;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+  transition: transform 0.3s ease;
+}
+
+.photoCard:hover {
+  transform: scale(1.03);
+}
+
+.photoCard img {
+  width: 100%;
+  height: 180px;
+  object-fit: cover;
+}
+
+.actions {
+  display: flex;
+  justify-content: space-around;
+  padding: 10px;
+  background: #fff;
+}
+
+.actions a {
+  text-decoration: none;
+  font-weight: 500;
+  color: #7a4b9b;
+  transition: color 0.3s;
+}
+
+.actions a:hover {
+  color: #4b2b68;
+}
+
+/* ---------- MOBILE RESPONSIVE ---------- */
+@media (max-width: 480px) {
+  h1 {
+    font-size: 1.6rem;
+  }
+
+  .container {
+    padding: 25px 20px;
+  }
+
+  .grid {
+    grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+  }
+}
