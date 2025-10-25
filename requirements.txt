@@ -1,7 +1,18 @@
+# Core setup tools
+wheel
+setuptools
 cmake==3.31.0
+
+# Face Recognition stack
 dlib==19.24.1
 face-recognition==1.3.0
 face-recognition-models==0.3.0
+
+# Flask & server
 flask==3.0.3
+gunicorn==21.2.0
+
+# Cloudinary and utilities
 cloudinary==1.44.1
 requests==2.32.3
+python-dotenv==1.0.1
