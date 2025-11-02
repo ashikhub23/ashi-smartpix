@@ -1,127 +1,179 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{{ event | capitalize }} | Photographer Dashboard</title>
-    <link rel="icon" href="/static/favicon.ico">
-    <style>
-        body {
-            font-family: "Poppins", sans-serif;
-            background: linear-gradient(135deg, #f7f8fc, #e3e9f3);
-            margin: 0;
-            padding: 0;
-            text-align: center;
-        }
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>{{ event_name }} - Ashi SmartPix Dashboard</title>
 
-        header {
-            background-color: #1d3557;
-            color: white;
-            padding: 15px 0;
-            font-size: 1.5em;
-            letter-spacing: 1px;
-        }
+  <style>
+    body {
+      margin: 0;
+      font-family: 'Poppins', sans-serif;
+      background: linear-gradient(135deg, #0f2027, #203a43, #2c5364);
+      color: #fff;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+      text-align: center;
+    }
 
-        main {
-            margin-top: 50px;
-        }
+    .dashboard {
+      background: rgba(255, 255, 255, 0.08);
+      border-radius: 20px;
+      backdrop-filter: blur(15px);
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+      padding: 40px 50px;
+      width: 90%;
+      max-width: 480px;
+      animation: fadeIn 1s ease-in-out;
+      position: relative;
+    }
 
-        h2 {
-            color: #1d3557;
-        }
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
 
-        form {
-            margin: 20px auto;
-            background: #fff;
-            padding: 25px;
-            width: 90%;
-            max-width: 500px;
-            border-radius: 12px;
-            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-        }
+    .logo {
+      width: 80px;
+      margin-bottom: 10px;
+      border-radius: 50%;
+      box-shadow: 0 0 10px rgba(0, 255, 255, 0.6);
+    }
 
-        input[type="file"] {
-            display: block;
-            width: 90%;
-            margin: 15px auto;
-            padding: 10px;
-            border: 2px solid #457b9d;
-            border-radius: 10px;
-        }
+    h1 {
+      font-size: 24px;
+      margin-bottom: 6px;
+    }
 
-        button {
-            background-color: #e63946;
-            color: white;
-            border: none;
-            padding: 12px 20px;
-            border-radius: 10px;
-            cursor: pointer;
-            font-weight: 600;
-            font-size: 1em;
-            transition: 0.3s;
-        }
+    h2 {
+      font-size: 16px;
+      font-weight: 400;
+      color: #ddd;
+      margin-bottom: 25px;
+    }
 
-        button:hover {
-            background-color: #d62828;
-        }
+    .link-box {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      margin-bottom: 15px;
+    }
 
-        .flash {
-            background: #f4f4f4;
-            border-left: 4px solid #457b9d;
-            padding: 10px;
-            width: 80%;
-            margin: 10px auto;
-            font-size: 0.95em;
-            border-radius: 5px;
-        }
+    a.link {
+      color: #00e0ff;
+      text-decoration: none;
+      word-break: break-all;
+      font-size: 14px;
+      transition: color 0.3s ease;
+    }
 
-        footer {
-            margin-top: 50px;
-            font-size: 0.85em;
-            color: #555;
-        }
+    a.link:hover {
+      color: #00ffff;
+    }
 
-        @media (max-width: 600px) {
-            header {
-                font-size: 1.2em;
-            }
+    .copy-btn {
+      background: rgba(255, 255, 255, 0.2);
+      border: none;
+      color: #fff;
+      border-radius: 8px;
+      padding: 6px 10px;
+      cursor: pointer;
+      transition: background 0.3s ease;
+    }
 
-            form {
-                width: 95%;
-            }
+    .copy-btn:hover {
+      background: rgba(0, 255, 255, 0.4);
+    }
 
-            button {
-                width: 100%;
-            }
-        }
-    </style>
+    .popup {
+      position: absolute;
+      top: -20px;
+      right: 10px;
+      background: rgba(0, 255, 150, 0.8);
+      color: #000;
+      padding: 5px 10px;
+      border-radius: 6px;
+      font-size: 13px;
+      opacity: 0;
+      transform: translateY(-10px);
+      transition: opacity 0.4s ease, transform 0.4s ease;
+    }
+
+    .popup.show {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    .btn {
+      background: linear-gradient(45deg, #00e0ff, #00ffa1);
+      color: #000;
+      border: none;
+      border-radius: 25px;
+      padding: 12px 25px;
+      font-size: 15px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      margin-top: 20px;
+    }
+
+    .btn:hover {
+      transform: scale(1.05);
+      box-shadow: 0 0 15px rgba(0, 255, 255, 0.6);
+    }
+
+    footer {
+      margin-top: 40px;
+      font-size: 13px;
+      opacity: 0.8;
+    }
+  </style>
 </head>
-
 <body>
-    <header>📸 ASHI SMARTPix | Photographer Dashboard</header>
+  <div class="dashboard">
+    <!-- 👑 SmartPix Logo -->
+    <img src="{{ url_for('static', filename='logo.jpg') }}" alt="Ashi SmartPix Logo" class="logo">
 
-    <main>
-        {% with messages = get_flashed_messages(with_categories=true) %}
-        {% if messages %}
-            {% for category, message in messages %}
-                <div class="flash">{{ message }}</div>
-            {% endfor %}
-        {% endif %}
-        {% endwith %}
+    <h1>{{ event_name }}</h1>
+    <h2>📸 Upload Successful!</h2>
 
-        <h2>Upload Photos to {{ event | capitalize }}</h2>
-        <p>Choose multiple images to upload!!</p>
+    <p>Guests can use this link to access their event photos:</p>
+    <div class="event-link-box">
 
-        <form method="POST" action="/upload"  enctype="multipart/form-data">
-    <input type="file" name="files" multiple required>
-    <button type="submit">Upload All</button>
-  </form>
+    <p id="eventLink" style="font-size:14px;word-break:break-all;">{{ guest_link }}</p>
+<button class="copy-btn" onclick="copyLink()">📋 Copy Link</button>
 
-        <p><a href="/">← Back to Home</a></p>
-    </main>
 
-    <footer>
-        © 2025 ASHI SMARTPix | Smart Wedding Photo Finder
-    </footer>
+    <form method="POST">
+        <input type="hidden" name="event_name" value="{{ event_name }}">
+        <button type="submit">🔄 Generate QR Again</button>
+    </form>
+
+    <button class="btn" onclick="downloadQR('{{ filename }}')">⬇ Download QR Code</button>
+
+</div>
+
+
+  <footer>
+    <p>© 2025 Ashi SmartPix | AI-Driven Event Photography</p>
+  </footer>
+
+ <script>
+function downloadQR(filename) {
+    window.location.href = "/download_qr/" + filename;
+}
+
+function copyLink() {
+    const link = document.getElementById("eventLink").innerText;
+    navigator.clipboard.writeText(link).then(() => {
+        alert("✅ Link Copied Successfully!");
+    }).catch(err => {
+        alert("❌ Failed to copy link");
+    });
+}
+</script>
 </body>
 </html>

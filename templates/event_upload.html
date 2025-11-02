@@ -1,71 +1,141 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Upload Event Photos</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Upload Event Photos - Ashi SmartPix</title>
+
   <style>
     body {
-      font-family: "Poppins", sans-serif;
+      font-family: 'Poppins', sans-serif;
+      background: linear-gradient(135deg, #0f2027, #203a43, #2c5364);
+      color: #fff;
       display: flex;
-      flex-direction: column;
       align-items: center;
       justify-content: center;
-      background: #f9f9f9;
       height: 100vh;
       margin: 0;
     }
-    h1 {
-      color: #333;
-    }
-    form {
-      background: white;
-      padding: 25px;
-      border-radius: 15px;
-      box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
-      width: 90%;
-      max-width: 400px;
+
+    .upload-box {
+      background: rgba(255, 255, 255, 0.08);
+      border-radius: 20px;
+      backdrop-filter: blur(15px);
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+      padding: 40px 60px;
       text-align: center;
+      width: 90%;
+      max-width: 480px;
+      animation: fadeIn 1s ease-in-out;
+      position: relative;
     }
-    input[type="file"] {
-      border: 2px dashed #007bff;
-      padding: 10px;
-      width: 100%;
-      border-radius: 10px;
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    h2 {
       margin-bottom: 10px;
-      cursor: pointer;
+      font-size: 24px;
     }
+
+    p {
+      color: #ddd;
+      margin-bottom: 20px;
+    }
+
+    input[type="file"] {
+      margin: 15px 0;
+      color: #fff;
+      font-size: 14px;
+    }
+
     button {
-      background: #007bff;
-      color: white;
-      border: none;
+      margin-top: 20px;
       padding: 10px 20px;
-      border-radius: 10px;
+      background: linear-gradient(45deg, #00e0ff, #00ffa1);
+      border: none;
+      border-radius: 25px;
+      color: #000;
+      font-size: 15px;
       cursor: pointer;
-      width: 100%;
-      transition: 0.3s;
+      transition: all 0.3s ease;
     }
+
     button:hover {
-      background: #0056b3;
+      transform: scale(1.05);
+      box-shadow: 0 0 15px rgba(0, 255, 255, 0.6);
     }
-    a {
-      color: #007bff;
-      text-decoration: none;
+
+    .btn-secondary {
+      margin-top: 25px;
+      background: rgba(255, 255, 255, 0.2);
+      color: #fff;
+      border-radius: 25px;
+      padding: 10px 22px;
       display: inline-block;
-      margin-top: 10px;
+      text-decoration: none;
+      transition: background 0.3s ease;
+    }
+
+    .btn-secondary:hover {
+      background: rgba(0, 255, 255, 0.4);
+    }
+
+    /* 🌟 Toast Popup Style */
+    .toast {
+      visibility: hidden;
+      min-width: 280px;
+      margin-left: -140px;
+      background: rgba(0, 255, 150, 0.2);
+      color: #00ffa1;
+      text-align: center;
+      border-radius: 8px;
+      padding: 10px;
+      position: fixed;
+      z-index: 1;
+      left: 50%;
+      top: 30px;
+      font-size: 16px;
+      border: 1px solid rgba(0, 255, 150, 0.6);
+      backdrop-filter: blur(10px);
+      transition: all 0.5s ease;
+      opacity: 0;
+    }
+
+    .toast.show {
+      visibility: visible;
+      opacity: 1;
+      top: 50px;
     }
   </style>
 </head>
 <body>
+  <div class="upload-box">
+    <h2>📸 Upload Event Photos</h2>
+    <p>Event: <b>{{ event_name }}</b></p>
 
-  <h1>Upload Event Photos</h1>
+    <form method="POST" enctype="multipart/form-data" id="uploadForm">
+      <input type="file" name="files[]" multiple required />
+      <br />
+      <button type="submit">Upload Photos</button>
+    </form>
 
-  <form method="POST" action="/upload"  enctype="multipart/form-data">
-    <input type="file" name="files" multiple required>
-    <button type="submit">Upload All</button>
-  </form>
+    <!-- 🟢 Go to QR Section -->
+    
 
-  <a href="/dashboard">Back to Dashboard</a>
+  <!-- ✅ Toast Notification -->
+  <div id="toast" class="toast">✅ Uploaded Successfully!</div>
 
+  <script>
+    // Show the toast message after successful upload
+    const toast = document.getElementById("toast");
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get("upload") === "success") {
+      toast.classList.add("show");
+      setTimeout(() => toast.classList.remove("show"), 3000);
+    }
+  </script>
 </body>
 </html>

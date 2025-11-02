@@ -1,49 +1,116 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Your Matched Photos</title>
-  <h6>ASHI SMARTPix</h6>
+  <link rel="icon" type="image/x-icon" href="{{ url_for('static', filename='icon.jpg') }}">
+
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>💞 Your Matched Photos</title>
   <style>
     body {
-      font-family: 'Poppins', sans-serif;
+      font-family: "Poppins", sans-serif;
+      background: linear-gradient(135deg, #fff0f5, #fff9f2);
       text-align: center;
-      background: #fff5f8;
+      padding: 30px;
+      margin: 0;
     }
+
     h1 {
-      color: #333;
-      margin-top: 20px;
+      color: #e63946;
+      font-size: 2rem;
+      margin-bottom: 10px;
     }
-    img {
-      width: 250px;
-      margin: 15px;
-      border-radius: 10px;
-      box-shadow: 0 0 10px rgba(255, 60, 131, 0.4);
+
+    p {
+      font-size: 1.1rem;
+      color: #555;
     }
-    a {
-      display: inline-block;
-      margin-top: 10px;
-      text-decoration: none;
+
+    .gallery {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 20px;
+      margin-top: 40px;
+    }
+
+    .photo-card {
+      background: white;
+      border-radius: 15px;
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+      width: 230px;
+      overflow: hidden;
+      transition: transform 0.3s ease;
+    }
+
+    .photo-card:hover {
+      transform: scale(1.05);
+    }
+
+    .photo-card img {
+      width: 100%;
+      height: 230px;
+      object-fit: cover;
+      border-bottom: 3px solid #ff5c5c;
+    }
+
+    .download-btn {
+      display: block;
+      background: linear-gradient(90deg, #e63946, #ff5c5c);
       color: white;
-      background: linear-gradient(90deg, #ff3c83, #ff6600);
-      padding: 8px 16px;
-      border-radius: 25px;
+      text-decoration: none;
+      padding: 10px;
+      font-weight: bold;
+      border-radius: 0 0 10px 10px;
+      transition: 0.3s;
+    }
+
+    .download-btn:hover {
+      background: linear-gradient(90deg, #ff5c5c, #e63946);
+    }
+
+    .no-match {
+      font-size: 18px;
+      color: #e63946;
+      margin-top: 50px;
+    }
+
+    .back-btn {
+      display: inline-block;
+      margin-top: 40px;
+      padding: 12px 25px;
+      background: linear-gradient(90deg, #6a0572, #b83b5e);
+      color: white;
+      text-decoration: none;
+      border-radius: 30px;
+      font-weight: bold;
+      transition: 0.3s;
+    }
+
+    .back-btn:hover {
+      transform: scale(1.05);
     }
   </style>
 </head>
 <body>
-  <h1>🎉 Matched Photos</h1>
-  {% if matches %}
-    {% for m in matches %}
-      <div>
-        <img src="{{ url_for('static', filename='known_faces/' + m) }}" alt="Matched Photo">
-        <br>
-        <a href="{{ url_for('static', filename='known_faces/' + m) }}" download>Download</a>
-      </div>
-    {% endfor %}
+
+  <h1>🎉 Your Matched Photos Are Ready!</h1>
+  <p>Download your beautiful memories below 💞</p>
+
+  {% if matches and matches|length > 0 %}
+    <div class="gallery">
+      {% for img_url in matches %}
+        <div class="photo-card">
+          <img src="{{ img_url }}" alt="Matched Photo" />
+          <a href="/download?url={{ img_url | urlencode}}" class="download-btn"> Download</a>
+        </div>
+      {% endfor %}
+    </div>
   {% else %}
-    <p>😞 No matches found.</p>
+    <p class="no-match">😕 No matching faces found. Try another selfie!</p>
   {% endif %}
+
+  <a href="/" class="back-btn">⬅ Back to Home</a>
+
 </body>
 </html>

@@ -1,5 +1,7 @@
+from fileinput import filename
 import os
 import io
+import json
 import time
 import qrcode
 import threading
@@ -7,7 +9,7 @@ import requests
 import face_recognition
 from io import BytesIO
 from PIL import Image
-from flask import Flask, render_template, request, redirect, url_for, flash, session
+from flask import Flask, render_template, request, redirect, url_for, flash, session, jsonify, send_file, Response, stream_with_context, send_from_directory
 import cloudinary
 import cloudinary.uploader
 import cloudinary.api
@@ -17,7 +19,7 @@ from dotenv import load_dotenv
 # -------------------- CONFIG --------------------
 load_dotenv()
 app = Flask(__name__, template_folder="templates", static_folder="static")
-app.secret_key = "ashik_photostudio_secret"
+
 
 cloudinary.config(
     cloud_name=os.getenv("CLOUD_NAME"),
@@ -30,22 +32,35 @@ STUDIO_LOGO_NAME = "studio_logo"  #to change the logo or as watermark
 # -------------------- PHOTOGRAPHERS --------------------
 PHOTOGRAPHER_CREDENTIALS = {
     "ashik": {"password": "1234", "event": "event_A"},
-    "rasin": {"password": "5678", "event": "event_B"},
-    "imran": {"password": "9999", "event": "event_C"}
+    "royal": {"password": "5678", "event": "event_B"},
+    "frame": {"password": "9999", "event": "event_C"},
+    "rasin": {"password": "0987", "event": "event_D"}
 }
 
 # -------------------- QR GENERATION --------------------
 BASE_URL = os.getenv("BASE_URL", "http://127.0.0.1:5000")
 
 def generate_qr(event_name):
-    """Generate unique QR code for each event automatically"""
     link = f"{BASE_URL}/guest/{event_name}"
-    qr_path = f"static/qr_codes/{event_name}.png"
-    os.makedirs("static/qr_codes", exist_ok=True)
+    folder = "static/qr_codes"
+    qr_path = os.path.join(folder,f"{event_name}_QR.png")
+
+    os.makedirs(folder, exist_ok=True)
+    qr = qrcode.QRCode(
+        version=1,
+        box_size=10,
+        border=5
+    )
+    qr.add_data(link)
+    qr.make(fit=True)
+
     img = qrcode.make(link)
+
     img.save(qr_path)
-    print(f"✅ QR Generated for {event_name}: {link}")
-    return qr_path, link
+
+    print("✅ QR Generated :", qr_path)
+    return qr_path
+
 # -------------------- AUTO REFRESH --------------------
 def auto_refresh(interval=300):
     while True:
@@ -71,7 +86,7 @@ def login():
             session['user'] = username
             session['event'] = user['event']
             flash(f"Welcome, {username}!", "success")
-            return redirect(url_for('dashboard'))
+            return redirect(url_for('event_upload'))
         else:
             flash('Invalid credentials', 'danger')
     return render_template('login.html')
@@ -82,65 +97,168 @@ def logout():
     flash('Logged out successfully.', 'info')
     return redirect(url_for('login'))
 
-# -------------------- DASHBOARD --------------------
-@app.route('/dashboard')
+# ------------------ DASHBOARD ------------------ #
+@app.route("/dashboard", methods=["GET", "POST"])
 def dashboard():
-    if 'user' not in session:
-        return redirect(url_for('login'))
+    if request.method == "POST":
+        event_name= request.form.get("event_name")
+        qr_path = generate_qr(event_name)
+        filename = f"{event_name}_QR.png"
+        return render_template("dashboard.html", event_name=event_name, filename=filename)
+    return render_template("dashboard.html")
 
-    event_name = session['event']
-    qr_path, qr_link = generate_qr(event_name)
+    event_name = session.get("event")
 
+    # Define paths and QR link
+    qr_path = f"qr_codes/{event_name}.png"
+    qr_link = f"{BASE_URL}/guest/{event_name}"
+
+    # Get uploaded images from Cloudinary (optional)
     try:
         result = cloudinary.api.resources(prefix=f"{event_name}/known_faces")
-        images = result.get('resources', [])
+        images = result.get("resources", [])
     except Exception as e:
         print("Cloudinary error:", e)
         images = []
 
     return render_template(
-        'dashboard.html',
-        user=session['user'],
-        event=event_name,
-        images=images,
+        "dashboard.html",
+        event_name=event_name,
         qr_link=qr_link,
-        qr_path=qr_path
+        qr_path=qr_path,
+        images=images
     )
 
 # -------------------- PHOTO UPLOAD --------------------
-@app.route('/upload', methods=['GET', 'POST'])
-def upload():
-    if 'user' not in session:
-        flash("Login first!", "warning")
-        return redirect(url_for('login'))
+@app.route("/event_upload", methods=["GET", "POST"])
+def event_upload():
+    if "user" not in session:
+        return redirect(url_for("login"))
 
-    event_name = session['event']
-    upload_folder = f"{event_name}/known_faces"
+    event_name = session["event"]
 
-    if request.method == 'POST':
-        files = request.files.getlist('files')
-        if not files:
-            flash("No files selected!", "danger")
-            return redirect(url_for('upload'))
+    if request.method == "POST":
+        uploaded_files = request.files.getlist("files[]")
+        for file in uploaded_files:
+            if file and file.filename:
+                cloudinary.uploader.upload(
+                    file,
+                    folder=f"{event_name}/known_faces"
+                )
 
-        count = 0
-        for file in files:
-            try:
-                img = Image.open(file)
-                img = img.convert("RGB")
-                img.thumbnail((1920, 1080))
-                buffer = io.BytesIO()
-                img.save(buffer, format="JPEG", quality=85)
-                buffer.seek(0)
-                cloudinary.uploader.upload(buffer, folder=upload_folder, resource_type="image")
-                count += 1
-            except Exception as e:
-                flash(f"Upload failed for {file.filename}: {e}", "danger")
+        # ✅ Generate QR after uploading faces
+        qr_path = generate_qr(event_name)
+        filename = f"{event_name}_QR.png"
+        guest_link = f"{BASE_URL}/guest/{event_name}"
 
-        flash(f"✅ {count} photo(s) uploaded to {upload_folder}", "success")
-        return redirect(url_for('dashboard'))
+        print("✅ QR Generated and saved at:", qr_path)
 
-    return render_template('event_upload.html', user=session['user'], event=event_name)
+        return render_template("dashboard.html",
+                                event_name=event_name,
+                                upload="success",
+                                filename=filename,
+                                qr_link=f"{BASE_URL}/guest/{event_name}",
+                                guest_link=f"{BASE_URL}/guest/{event_name}")
+
+    # GET Request
+    return render_template("event_upload.html", event_name=event_name)
+
+               
+#--------------selfie-----------
+@app.route("/upload", methods=["POST"])
+def upload_selfie(event_name):
+    try:
+        file = request.files["file"]
+        os.makedirs("uploads", exist_ok=True)
+        selfie_path = os.path.join("uploads", "selfie.jpg")
+        file.save(selfie_path)
+        print("✅ Selfie uploaded successfully:", selfie_path)
+
+        # Load uploaded selfie
+        selfie_img = face_recognition.load_image_file(selfie_path)
+        selfie_encodings = face_recognition.face_encodings(selfie_img)
+
+        if not selfie_encodings:
+            print("😕 No face found in selfie")
+            return jsonify({"status": "error", "message": "No face detected in selfie"}), 400
+
+        selfie_encoding = selfie_encodings[0]
+
+        # Fetch all images from Cloudinary (Event Folder)
+        response = cloudinary.api.resources(type="upload", prefix=f"{event_name}/known_faces")  # Change if event name differs
+        matched_photos = []
+        total_checked = 0
+
+        print("☁️ Fetching images from Cloudinary...")
+
+        for img in response.get("resources", []):
+            img_url = img["secure_url"]
+            total_checked += 1
+            print(f"🔍 Checking photo {total_checked}/{len(response.get('resources',[]))}")
+
+            # Download the Cloudinary image
+            img_response = requests.get(img_url)
+            known_img = face_recognition.load_image_file(BytesIO(img_response.content))
+            encodings = face_recognition.face_encodings(known_img)
+
+            if not encodings:
+                continue  # Skip images with no faces
+
+            # ✅ Compare selfie with *all* faces in the image
+            matches = face_recognition.compare_faces(encodings, selfie_encoding, tolerance=0.55)
+
+            # ✅ If *any* face matches, add the image
+            if True in matches:
+                matched_photos.append(img_url)
+
+        print(f"🔍 Checked {total_checked} images, found {len(matched_photos)} matches.")
+
+        # Save matches in session and redirect to result page
+        session['matches'] = matched_photos
+        return redirect(url_for("result"))
+
+    except Exception as e:
+        print(f"❌ Error in upload_selfie: {e}")
+        return jsonify({"status": "error", "message": str(e)}), 500
+app.secret_key = "ashik_smartpix_secret"
+
+#------------progress-------
+@app.route('/progress_stream')
+def progress_stream():
+    """Dummy progress stream (simulates scanning updates for front-end)"""
+    def generate():
+        total = 10  # Example count; just simulates 10 steps
+        for i in range(1, total + 1):
+            progress_data = {'progress': i, 'total': total}
+            yield f"data: {json.dumps(progress_data)}\n\n"
+            time.sleep(0.3)  # Simulate scanning time
+        yield f"data: {json.dumps({'done': True})}\n\n"
+    return Response(stream_with_context(generate()), mimetype='text/event-stream')
+
+
+
+@app.route('/result')   # Flask: “When someone visits /result page...”
+def result():
+    try:
+        # 👜 Open the student’s bag and check if there’s a paper called 'matches'
+        matches = session.get('matches', [])
+        print("✅ Matches being sent to result.html:", matches)
+        print(f"🎯 Total matched photos: {len(matches)}")
+
+        # 😕 If the bag has no 'matches' paper
+        if not matches:
+            print("⚠️ No matches found in session.")
+            # Show empty result page
+            return render_template('result.html', matches=[])
+
+        # 🖼️ If matches exist, show them on the result.html page
+        return render_template('result.html', matches=matches)
+
+    except Exception as e:
+        # 🚨 If anything breaks, show this message in terminal
+        print(f"❌ Error loading result page: {e}")
+        return f"Error displaying result page: {e}", 500
+
 
 # -------------------- GUEST SIDE --------------------
 @app.route('/guest/<event_name>', methods=['GET', 'POST'])
@@ -196,12 +314,38 @@ def guest(event_name):
                 print(f"Error comparing {img_url}: {err}")
 
     return render_template('result.html', matches=matches, event=event_name)
-@app.route("/ping")
-def ping():
-    return "pong",200
+#---------download route--------
+@app.route("/download_qr/<filename>")
+def download_qr(filename):
+    return send_from_directory("static/qr_codes", filename, as_attachment=True)
+
+
+@app.route("/download")
+def download_image():
+    """Download image from Cloudinary and send to user"""
+    img_url = request.args.get("url")
+    if not img_url:
+        return "No image URL provided", 400
+
+    try:
+        response = requests.get(img_url)
+        if response.status_code != 200:
+            return "Error downloading image", 500
+
+        # Stream image bytes back to browser
+        return send_file(
+            BytesIO(response.content),
+            mimetype='image/jpeg',
+            as_attachment=True,
+            download_name="AshiSmartPix_Photo.jpg"
+        )
+    except Exception as e:
+        print(f"❌ Error in download route: {e}")
+        return "Server error", 500
+
 
 # -------------------- MAIN --------------------
 if __name__ == '__main__':
-    port = int(os.environ.get("PORT",5000))
-    print(f"🚀 Wedding QR Business System running on port {port}")
-    app.run(host="0.0.0.0",port=port,debug=False)
+    print("🚀 Wedding QR Business System running on http://127.0.0.1:5000")
+    app.run(debug=True, use_reloader=False)
+    
