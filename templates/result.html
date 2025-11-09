@@ -97,18 +97,18 @@
   <h1>🎉 Your Matched Photos Are Ready!</h1>
   <p>Download your beautiful memories below 💞</p>
 
-  {% if matches and matches|length > 0 %}
-    <div class="gallery">
-      {% for img_url in matches %}
-        <div class="photo-card">
-          <img src="{{ img_url }}" alt="Matched Photo" />
-          <a href="/download?url={{ img_url | urlencode}}" class="download-btn"> Download</a>
-        </div>
-      {% endfor %}
-    </div>
-  {% else %}
-    <p class="no-match">😕 No matching faces found. Try another selfie!</p>
-  {% endif %}
+ {% if matches|length > 0 %}
+  <div class="gallery">
+    {% for img_url in matches %}
+      <div class="photo-card">
+        <img src="{{ img_url }}" alt="Matched Photo" />
+        <a href="/download?url={{ img_url | urlencode }}" class="download-btn">⬇ Download</a>
+      </div>
+    {% endfor %}
+  </div>
+{% else %}
+  <p class="no-match">😕 No matching faces found. Try another selfie!</p>
+{% endif %}
 
   <a href="/" class="back-btn">⬅ Back to Home</a>
 

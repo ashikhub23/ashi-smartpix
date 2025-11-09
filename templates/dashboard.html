@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>{{ event_name }} - Ashi SmartPix Dashboard</title>
+  <title>{{ event }} - Ashi SmartPix Dashboard</title>
 
   <style>
     body {
@@ -137,7 +137,7 @@
     <!-- 👑 SmartPix Logo -->
     <img src="{{ url_for('static', filename='logo.jpg') }}" alt="Ashi SmartPix Logo" class="logo">
 
-    <h1>{{ event_name }}</h1>
+    <h1>{{ event }}</h1>
     <h2>📸 Upload Successful!</h2>
 
     <p>Guests can use this link to access their event photos:</p>
@@ -148,7 +148,7 @@
 
 
     <form method="POST">
-        <input type="hidden" name="event_name" value="{{ event_name }}">
+        <input type="hidden" name="event" value="{{ event }}">
         <button type="submit">🔄 Generate QR Again</button>
     </form>
 

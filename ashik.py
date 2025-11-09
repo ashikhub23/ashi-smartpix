@@ -40,10 +40,10 @@ PHOTOGRAPHER_CREDENTIALS = {
 # -------------------- QR GENERATION --------------------
 BASE_URL = os.getenv("BASE_URL", "http://127.0.0.1:5000")
 
-def generate_qr(event_name):
-    link = f"{BASE_URL}/guest/{event_name}"
+def generate_qr(event):
+    link = f"{BASE_URL}/guest/{event}"
     folder = "static/qr_codes"
-    qr_path = os.path.join(folder,f"{event_name}_QR.png")
+    qr_path = os.path.join(folder,f"{event}_QR.png")
 
     os.makedirs(folder, exist_ok=True)
     qr = qrcode.QRCode(
@@ -67,7 +67,7 @@ def auto_refresh(interval=300):
         print("Refreshing Cloudinary data...")
         time.sleep(interval)
 
-threading.Thread(target=auto_refresh, daemon=True).start()
+ threading.Thread(target=auto_refresh, daemon=True).start()
 
 # -------------------- ROUTES --------------------
 @app.route('/')
@@ -101,33 +101,11 @@ def logout():
 @app.route("/dashboard", methods=["GET", "POST"])
 def dashboard():
     if request.method == "POST":
-        event_name= request.form.get("event_name")
-        qr_path = generate_qr(event_name)
-        filename = f"{event_name}_QR.png"
-        return render_template("dashboard.html", event_name=event_name, filename=filename)
+        event = request.form.get("event") 
+        qr_path = generate_qr(event)
+        filename = f"{event}_QR.png"
+        return render_template("dashboard.html", event=event, filename=filename)
     return render_template("dashboard.html")
-
-    event_name = session.get("event")
-
-    # Define paths and QR link
-    qr_path = f"qr_codes/{event_name}.png"
-    qr_link = f"{BASE_URL}/guest/{event_name}"
-
-    # Get uploaded images from Cloudinary (optional)
-    try:
-        result = cloudinary.api.resources(prefix=f"{event_name}/known_faces")
-        images = result.get("resources", [])
-    except Exception as e:
-        print("Cloudinary error:", e)
-        images = []
-
-    return render_template(
-        "dashboard.html",
-        event_name=event_name,
-        qr_link=qr_link,
-        qr_path=qr_path,
-        images=images
-    )
 
 # -------------------- PHOTO UPLOAD --------------------
 @app.route("/event_upload", methods=["GET", "POST"])
@@ -135,7 +113,7 @@ def event_upload():
     if "user" not in session:
         return redirect(url_for("login"))
 
-    event_name = session["event"]
+    event = session["event"]
 
     if request.method == "POST":
         uploaded_files = request.files.getlist("files[]")
@@ -143,83 +121,84 @@ def event_upload():
             if file and file.filename:
                 cloudinary.uploader.upload(
                     file,
-                    folder=f"{event_name}/known_faces"
+                    folder=f"{event}/known_faces"
                 )
 
         # ✅ Generate QR after uploading faces
-        qr_path = generate_qr(event_name)
-        filename = f"{event_name}_QR.png"
-        guest_link = f"{BASE_URL}/guest/{event_name}"
+        qr_path = generate_qr(event)  
+        filename = f"{event}_QR.png"
+        guest_link = f"{BASE_URL}/guest/{event}"
 
         print("✅ QR Generated and saved at:", qr_path)
 
-        return render_template("dashboard.html",
-                                event_name=event_name,
-                                upload="success",
-                                filename=filename,
-                                qr_link=f"{BASE_URL}/guest/{event_name}",
-                                guest_link=f"{BASE_URL}/guest/{event_name}")
+        return render_template("dashboard.html", event=event, upload="success", filename=filename, qr_link=f"{BASE_URL}/guest/{event}", guest_link=f"{BASE_URL}/guest/{event}")
 
     # GET Request
-    return render_template("event_upload.html", event_name=event_name)
-
-               
+    return render_template("event_upload.html", event=event)
+              
 #--------------selfie-----------
-@app.route("/upload", methods=["POST"])
-def upload_selfie(event_name):
+@app.route("/upload/<event>", methods=["POST"])
+def upload_selfie(event):
     try:
+        session["event"] = event
+        print("Active Event = ", event)
+        
         file = request.files["file"]
         os.makedirs("uploads", exist_ok=True)
         selfie_path = os.path.join("uploads", "selfie.jpg")
         file.save(selfie_path)
         print("✅ Selfie uploaded successfully:", selfie_path)
 
-        # Load uploaded selfie
         selfie_img = face_recognition.load_image_file(selfie_path)
         selfie_encodings = face_recognition.face_encodings(selfie_img)
 
         if not selfie_encodings:
             print("😕 No face found in selfie")
-            return jsonify({"status": "error", "message": "No face detected in selfie"}), 400
+            session["matches"] = []
+            return redirect(url_for("result"))
 
         selfie_encoding = selfie_encodings[0]
+        print("Selfie enc len =", len(selfie_encoding))
 
-        # Fetch all images from Cloudinary (Event Folder)
-        response = cloudinary.api.resources(type="upload", prefix=f"{event_name}/known_faces")  # Change if event name differs
+        # FIXED PREFIX
+        folder_path = f"{event}/known_faces/"
+        response = cloudinary.api.resources(type="upload", prefix=folder_path,
+                                            max_results=200)
+
         matched_photos = []
-        total_checked = 0
+        total_resources = len(response.get("resources", []))
+        print(f"☁️ Checking Cloudinary images… total: {total_resources}")
 
-        print("☁️ Fetching images from Cloudinary...")
-
-        for img in response.get("resources", []):
+        for index, img in enumerate(response.get("resources", []), start=1):
+            print(f"🔍 Checking photo {index}/{total_resources}")
             img_url = img["secure_url"]
-            total_checked += 1
-            print(f"🔍 Checking photo {total_checked}/{len(response.get('resources',[]))}")
 
-            # Download the Cloudinary image
             img_response = requests.get(img_url)
-            known_img = face_recognition.load_image_file(BytesIO(img_response.content))
+            known_img = face_recognition.load_image_file(BytesIO
+                                                         (img_response.content))
             encodings = face_recognition.face_encodings(known_img)
 
             if not encodings:
-                continue  # Skip images with no faces
+                print("No face found in cloud photo:", img_url)
+                continue
 
-            # ✅ Compare selfie with *all* faces in the image
-            matches = face_recognition.compare_faces(encodings, selfie_encoding, tolerance=0.55)
-
-            # ✅ If *any* face matches, add the image
+            matches = face_recognition.compare_faces(encodings, 
+                                                     selfie_encoding, 
+                                                     tolerance=0.55)
             if True in matches:
+                print("✅ MATCH FOUND:", img_url)
                 matched_photos.append(img_url)
 
-        print(f"🔍 Checked {total_checked} images, found {len(matched_photos)} matches.")
+        session["matches"] = matched_photos
+        print("🎯 FINAL MATCHES:", matched_photos)
 
-        # Save matches in session and redirect to result page
-        session['matches'] = matched_photos
         return redirect(url_for("result"))
 
     except Exception as e:
-        print(f"❌ Error in upload_selfie: {e}")
-        return jsonify({"status": "error", "message": str(e)}), 500
+        print("❌ ERROR:", e)
+        return "Server error", 500
+
+
 app.secret_key = "ashik_smartpix_secret"
 
 #------------progress-------
@@ -234,9 +213,7 @@ def progress_stream():
             time.sleep(0.3)  # Simulate scanning time
         yield f"data: {json.dumps({'done': True})}\n\n"
     return Response(stream_with_context(generate()), mimetype='text/event-stream')
-
-
-
+#result route
 @app.route('/result')   # Flask: “When someone visits /result page...”
 def result():
     try:
@@ -259,67 +236,18 @@ def result():
         print(f"❌ Error loading result page: {e}")
         return f"Error displaying result page: {e}", 500
 
-
 # -------------------- GUEST SIDE --------------------
-@app.route('/guest/<event_name>', methods=['GET', 'POST'])
-def guest(event_name):
-    matches = []
+@app.route('/guest/<event>')
+def guest(event):
+    print("🔥 Guest page opened for event:", event)
+    session["event"] = event
+    return render_template("index.html", event=event)
 
-    if request.method == 'POST':
-        selfie = request.files.get('selfie')
-        if not selfie:
-            flash("Please upload a selfie.", "warning")
-            return redirect(request.url)
-
-        # Load guest selfie
-        with BytesIO() as selfie_bytes:
-            selfie.save(selfie_bytes)
-            selfie_bytes.seek(0)
-            guest_img = face_recognition.load_image_file(selfie_bytes)
-            guest_encs = face_recognition.face_encodings(guest_img)
-            if not guest_encs:
-                flash("No face detected in selfie.", "danger")
-                return redirect(request.url)
-            guest_enc = guest_encs[0]
-
-        # Fetch Cloudinary images for event
-        folder_path = f"{event_name}/known_faces"
-        try:
-            response = cloudinary.api.resources(type="upload", prefix=folder_path, max_results=100)
-        except Exception as e:
-            flash(f"Error fetching from Cloudinary: {e}", "danger")
-            return redirect(request.url)
-
-        for res in response.get("resources", []):
-            img_url = res["secure_url"]
-            try:
-                r = requests.get(img_url)
-                image = face_recognition.load_image_file(BytesIO(r.content))
-                encs = face_recognition.face_encodings(image)
-                for enc in encs:
-                    match = face_recognition.compare_faces([guest_enc], enc, tolerance=0.55)
-                    if match[0]:
-                        try:
-                            logo_overlay = f"{STUDIO_LOGO_NAME}"
-                            watermarked_url, _ =cloudinary_url(
-                                res['public_id'],transformation=[{'overlay': logo_overlay,'gravity':
-                                    'south_east','opacity':75, 'width':250,
-                                    'crop': 'scale'},{'quality':'auto'},{'fetch_format':'auto'}])
-                            matches.append(watermarked_url)
-                        except Exception as e:
-                            print(f"Logo overlay failed: {e}")
-                            matches.append(img_url)
-                        break
-            except Exception as err:
-                print(f"Error comparing {img_url}: {err}")
-
-    return render_template('result.html', matches=matches, event=event_name)
 #---------download route--------
 @app.route("/download_qr/<filename>")
 def download_qr(filename):
     return send_from_directory("static/qr_codes", filename, as_attachment=True)
-
-
+#download image
 @app.route("/download")
 def download_image():
     """Download image from Cloudinary and send to user"""
@@ -342,8 +270,6 @@ def download_image():
     except Exception as e:
         print(f"❌ Error in download route: {e}")
         return "Server error", 500
-
-
 # -------------------- MAIN --------------------
 if __name__ == '__main__':
     print("🚀 Wedding QR Business System running on http://127.0.0.1:5000")

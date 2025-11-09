@@ -5,229 +5,73 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>💍 ASHI SmartPix</title>
   <link rel="icon" type="image/x-icon" href="{{ url_for('static', filename='favicon.png') }}">
-  <style>
-    body {
-      margin: 0;
-      font-family: "Poppins", sans-serif;
-      text-align: center;
-      background: linear-gradient(135deg, #fff0f5, #fff9f2);
-      color: #333;
-      overflow: hidden;
-    }
-
-    h1 {
-      margin-top: 25px;
-      font-size: 2.3rem;
-      color: #b83b5e;
-    }
-
-    video {
-      margin-top: 20px;
-      width: 70%;
-      max-width: 400px;
-      border-radius: 20px;
-      border: 4px solid #ff6b81;
-      box-shadow: 0 0 25px rgba(255, 107, 129, 0.3);
-    }
-
-    button {
-      background: linear-gradient(90deg, #ff6b81, #ff9a8b);
-      border: none;
-      color: white;
-      padding: 14px 28px;
-      font-size: 18px;
-      border-radius: 30px;
-      margin-top: 25px;
-      cursor: pointer;
-      box-shadow: 0 0 20px rgba(255, 107, 129, 0.4);
-      transition: all 0.3s ease;
-    }
-
-    button:hover { transform: scale(1.05); }
-
-    /* Spinner */
-    #spinner {
-      display: none;
-      margin-top: 60px;
-      text-align: center;
-      animation: fadeIn 0.5s ease;
-    }
-
-    .scanner-ring {
-      width: 100px;
-      height: 100px;
-      border: 8px solid #f3f3f3;
-      border-top: 8px solid #e63946;
-      border-radius: 50%;
-      animation: spin 1s linear infinite;
-      margin: 0 auto 20px auto;
-    }
-
-    @keyframes spin {
-      0% { transform: rotate(0deg); }
-      100% { transform: rotate(360deg); }
-    }
-
-    .scan-text {
-      font-size: 18px;
-      color: #e63946;
-      animation: pulse 1.5s infinite;
-    }
-
-    @keyframes pulse {
-      0%, 100% { opacity: 1; }
-      50% { opacity: 0.6; }
-    }
-
-    #progress-text {
-      font-size: 16px;
-      color: #444;
-      margin-top: 10px;
-    }
-
-    /* No Match Popup */
-    #noMatchPopup {
-      display: none;
-      position: fixed;
-      top: 0; left: 0;
-      width: 100%; height: 100%;
-      background: rgba(0, 0, 0, 0.7);
-      justify-content: center;
-      align-items: center;
-      z-index: 100;
-    }
-
-    .popup-content {
-      background: white;
-      border-radius: 20px;
-      padding: 30px;
-      text-align: center;
-      width: 280px;
-      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
-    }
-
-    .popup-content h3 { color: #e63946; margin-bottom: 10px; }
-    .popup-content button {
-      background: #ff6b81;
-      padding: 10px 20px;
-      border-radius: 8px;
-      font-weight: 600;
-    }
-  </style>
 </head>
 
-<body>
-  <h1>💍 ASHI SmartPix</h1>
+<body style="text-align:center;font-family:Poppins;background:#fff0f5;margin:0;">
+
+  <h1 style="margin-top:25px;color:#b83b5e;font-size:2rem;">💍 ASHI SmartPix</h1>
   <p>Take a selfie to find your special memories instantly 💞</p>
-  <center>
-  <video id="camera" autoplay playsinline></video>
-  <canvas id="canvas" style="display:none;"></canvas>
-  <form id="selfieForm" action="/upload/{{event}}" method="POST" enctype="multipart/form-data">
 
-  <button id="captureBtn">🎯 Capture & Find Photos</button>
-  </center>
-  </form>
+  <video id="camera" autoplay playsinline style="width:80%;max-width:420px;border-radius:18px;border:3px solid #ff6b81;"></video>
+  <canvas id="canvas" style="display:none;"></canvas><br>
 
-  <!-- Spinner with Progress -->
-  <div id="spinner">
-    <div class="scanner-ring"></div>
-    <p class="scan-text">🤖 Hey buddy… Please wait, scanning your images 💫</p>
-    <p id="progress-text"></p>
-  </div>
+  <button id="captureBtn" style="background:#ff6b81;color:white;padding:14px 28px;border:none;font-size:18px;border-radius:30px;margin-top:20px;">🎯 Capture & Find Photos</button>
 
-  <!-- No Match Popup -->
-  <div id="noMatchPopup">
-    <div class="popup-content">
-      <h3>😕 No Matches Found</h3>
-      <p>Please try again with a clearer selfie!</p>
-      <button onclick="closePopup()">OK</button>
-    </div>
-  </div>
+  <div id="spinner" style="display:none;margin-top:40px;font-size:18px;color:#e63946;">Please wait... Scanning photos 🤖</div>
 
-  <script>
-    const video = document.getElementById("camera");
-    const canvas = document.getElementById("canvas");
-    const captureBtn = document.getElementById("captureBtn");
-    const spinner = document.getElementById("spinner");
-    const progressText = document.getElementById("progress-text");
-    const noMatchPopup = document.getElementById("noMatchPopup");
+<script>
+const video = document.getElementById("camera");
+const canvas = document.getElementById("canvas");
+const spinner = document.getElementById("spinner");
+const captureBtn = document.getElementById("captureBtn");
 
-    async function startCamera() {
-      try {
-        const stream = await navigator.mediaDevices.getUserMedia({ video: true });
-        video.srcObject = stream;
-      } catch (err) {
-        alert("⚠️ Please allow camera access to continue.");
-      }
-    }
+// Start camera
+async function startCamera(){
+  try{
+    const stream = await navigator.mediaDevices.getUserMedia({video:true});
+    video.srcObject = stream;
+  }catch(e){
+    alert("Allow camera access to continue");
+  }
+}
+startCamera();
 
-    function stopCamera() {
-      const stream = video.srcObject;
-      if (stream) stream.getTracks().forEach(track => track.stop());
-      video.srcObject = null;
-    }
+// Stop camera
+function stopCamera(){
+  const stream = video.srcObject;
+  if(stream) stream.getTracks().forEach(t=>t.stop());
+  video.srcObject=null;
+}
 
-    function closePopup() {
-      noMatchPopup.style.display = "none";
-      spinner.style.display = "none";
-      captureBtn.style.display = "block";
-      video.style.display = "block";
-      startCamera();
-    }
+// CAPTURE SELFIE
+captureBtn.onclick = ()=>{
 
-    captureBtn.addEventListener("click", async () => {
-      spinner.style.display = "block";
-      captureBtn.style.display = "none";
-      video.style.display = "none";
+  spinner.style.display="block";
+  captureBtn.style.display="none";
 
-      const context = canvas.getContext("2d");
-      canvas.width = video.videoWidth;
-      canvas.height = video.videoHeight;
-      context.drawImage(video, 0, 0, canvas.width, canvas.height);
-      stopCamera();
+  const ctx = canvas.getContext("2d");
+  canvas.width = video.videoWidth;
+  canvas.height = video.videoHeight;
+  ctx.drawImage(video,0,0,canvas.width,canvas.height);
+  stopCamera();
 
-      canvas.toBlob(async (blob) => {
-        const formData = new FormData();
-        formData.append("file", blob, "selfie.jpg");
+  canvas.toBlob((blob)=>{
 
-        try {
-          // Start scanning progress listener
-          const eventSource = new EventSource("/progress_stream");
-          eventSource.onmessage = (event) => {
-            const data = JSON.parse(event.data);
-            if (data.progress) {
-              progressText.textContent = `📸 Checking photo ${data.progress} of ${data.total}...`;
-            }
-            if (data.done) {
-              eventSource.close();
-            }
-          };
+    const fd = new FormData();
+    fd.append("file", blob, "selfie.jpg");
 
-          // put image blob inside hidden input field
-const fileInput = document.createElement("input");
-fileInput.type = "hidden";
-fileInput.name = "file";
-fileInput.value = blob;
-document.getElementById("selfieForm").appendChild(fileInput);
+    const event = "{{ event }}";  // flask gives correct event
 
-// submit form to correct event URL
-document.getElementById("selfieForm").submit();
+    fetch('/upload/${event})', {method:"POST", body:fd})
+      .then(res=>{
+        window.location.href="/result"; // after matching go result page
+      })
+      .catch(_=>{
+        alert("server error");
+      });
 
-          spinner.style.display = "none";
-          if (res.redirected) {
-            window.location.href = res.url;
-            } else {
-              window.location.href = "/result";
-            }
-
-        } catch (err) {
-          spinner.style.display = "none";
-          alert("❌ Server error! Please try again.");
-        }
-      }, "image/jpeg");
-    });
-
-    startCamera();
-  </script>
+  },"image/jpeg");
+}
+</script>
 </body>
 </html>
