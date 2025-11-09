@@ -67,7 +67,7 @@ def auto_refresh(interval=300):
         print("Refreshing Cloudinary data...")
         time.sleep(interval)
 
- threading.Thread(target=auto_refresh, daemon=True).start()
+threading.Thread(target=auto_refresh, daemon=True).start()
 
 # -------------------- ROUTES --------------------
 @app.route('/')
@@ -101,7 +101,7 @@ def logout():
 @app.route("/dashboard", methods=["GET", "POST"])
 def dashboard():
     if request.method == "POST":
-        event = request.form.get("event") 
+        event= request.form.get("event")
         qr_path = generate_qr(event)
         filename = f"{event}_QR.png"
         return render_template("dashboard.html", event=event, filename=filename)
@@ -125,13 +125,18 @@ def event_upload():
                 )
 
         # ✅ Generate QR after uploading faces
-        qr_path = generate_qr(event)  
+        qr_path = generate_qr(event)
         filename = f"{event}_QR.png"
         guest_link = f"{BASE_URL}/guest/{event}"
 
         print("✅ QR Generated and saved at:", qr_path)
 
-        return render_template("dashboard.html", event=event, upload="success", filename=filename, qr_link=f"{BASE_URL}/guest/{event}", guest_link=f"{BASE_URL}/guest/{event}")
+        return render_template("dashboard.html",
+                                event=event,
+                                upload="success",
+                                filename=filename,
+                                qr_link=f"{BASE_URL}/guest/{event}",
+                                guest_link=f"{BASE_URL}/guest/{event}")
 
     # GET Request
     return render_template("event_upload.html", event=event)
@@ -140,9 +145,9 @@ def event_upload():
 @app.route("/upload/<event>", methods=["POST"])
 def upload_selfie(event):
     try:
-        session["event"] = event
         print("Active Event = ", event)
-        
+        session["event"] = event
+    
         file = request.files["file"]
         os.makedirs("uploads", exist_ok=True)
         selfie_path = os.path.join("uploads", "selfie.jpg")
@@ -162,8 +167,7 @@ def upload_selfie(event):
 
         # FIXED PREFIX
         folder_path = f"{event}/known_faces/"
-        response = cloudinary.api.resources(type="upload", prefix=folder_path,
-                                            max_results=200)
+        response = cloudinary.api.resources(type="upload", prefix=folder_path, max_results=200)
 
         matched_photos = []
         total_resources = len(response.get("resources", []))
@@ -174,17 +178,14 @@ def upload_selfie(event):
             img_url = img["secure_url"]
 
             img_response = requests.get(img_url)
-            known_img = face_recognition.load_image_file(BytesIO
-                                                         (img_response.content))
+            known_img = face_recognition.load_image_file(BytesIO(img_response.content))
             encodings = face_recognition.face_encodings(known_img)
 
             if not encodings:
                 print("No face found in cloud photo:", img_url)
                 continue
 
-            matches = face_recognition.compare_faces(encodings, 
-                                                     selfie_encoding, 
-                                                     tolerance=0.55)
+            matches = face_recognition.compare_faces(encodings, selfie_encoding, tolerance=0.55)
             if True in matches:
                 print("✅ MATCH FOUND:", img_url)
                 matched_photos.append(img_url)
