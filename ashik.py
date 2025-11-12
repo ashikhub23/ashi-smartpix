@@ -2,6 +2,8 @@ from fileinput import filename
 import os
 import io
 import json
+from re import search
+from sys import prefix
 import time
 import qrcode
 import threading
@@ -22,9 +24,9 @@ app = Flask(__name__, template_folder="templates", static_folder="static")
 
 
 cloudinary.config(
-    cloud_name=os.getenv("CLOUD_NAME"),
-    api_key=os.getenv("API_KEY"),
-    api_secret=os.getenv("API_SECRET"),
+    cloud_name="dcelcw5aa",
+    api_key="887344271542454",
+    api_secret="_Ch0vgdSGJiDZI4Gjmx44Wq4ids",
     secure=True
 )
 STUDIO_LOGO_NAME = "studio_logo"  #to change the logo or as watermark
@@ -135,8 +137,8 @@ def event_upload():
                                 event=event,
                                 upload="success",
                                 filename=filename,
-                                qr_link=f"{BASE_URL}/guest/{event}",
-                                guest_link=f"{BASE_URL}/guest/{event}")
+                                qr_link=guest_link,
+                                guest_link=guest_link)
 
     # GET Request
     return render_template("event_upload.html", event=event)
@@ -144,61 +146,92 @@ def event_upload():
 #--------------selfie-----------
 @app.route("/upload/<event>", methods=["POST"])
 def upload_selfie(event):
+    print(f"🔥 Guest upload started for event: {event}")
+    print(f"🧩 DEBUG — Event received in Flask route: '{event}'")
     try:
-        print("Active Event = ", event)
+        print(f"\n🔥 Guest upload started for event: {event}")
         session["event"] = event
-    
-        file = request.files["file"]
+
+        # --- Selfie upload ---
+        file = request.files.get("file")
+        if not file:
+            print("❌ No selfie file received")
+            return "No file received", 400
+
         os.makedirs("uploads", exist_ok=True)
         selfie_path = os.path.join("uploads", "selfie.jpg")
         file.save(selfie_path)
-        print("✅ Selfie uploaded successfully:", selfie_path)
+        print(f"✅ Selfie uploaded successfully → {selfie_path}")
 
+        # --- Face encoding for selfie ---
         selfie_img = face_recognition.load_image_file(selfie_path)
         selfie_encodings = face_recognition.face_encodings(selfie_img)
-
         if not selfie_encodings:
-            print("😕 No face found in selfie")
+            print("😕 No face found in selfie.")
             session["matches"] = []
             return redirect(url_for("result"))
 
         selfie_encoding = selfie_encodings[0]
-        print("Selfie enc len =", len(selfie_encoding))
+        print(f"🧠 Selfie encodings length = {len(selfie_encoding)}")
 
-        # FIXED PREFIX
-        folder_path = f"{event}/known_faces/"
-        response = cloudinary.api.resources(type="upload", prefix=folder_path, max_results=200)
+        # --- Fetch Cloudinary folder (final working version) ---
+        folder_path = f"{event}/known_faces"
+        print(f"📂 Checking Cloudinary folder path → '{folder_path}'")
+
+        try:
+            response = cloudinary.api.resources(
+                prefix=folder_path,
+                type="upload",
+                resource_type="image",
+                max_results=100
+            )
+
+            resources = response.get("resources", [])
+            total_resources = len(resources)
+            print(f"📸 Found {total_resources} Cloudinary images for event '{event}'")
+
+            if total_resources == 0:
+                print("⚠️ No images found in this event folder.")
+        except Exception as e:
+            print("❌ Cloudinary fetch error:", repr(e))
+            return f"Cloudinary error: {e}", 500
 
         matched_photos = []
-        total_resources = len(response.get("resources", []))
-        print(f"☁️ Checking Cloudinary images… total: {total_resources}")
 
-        for index, img in enumerate(response.get("resources", []), start=1):
-            print(f"🔍 Checking photo {index}/{total_resources}")
+        # --- Compare each Cloudinary image with selfie ---
+        for index, img in enumerate(resources, start=1):
             img_url = img["secure_url"]
+            print(f"🔍 Checking image {index}/{total_resources} → {img_url}")
 
-            img_response = requests.get(img_url)
-            known_img = face_recognition.load_image_file(BytesIO(img_response.content))
-            encodings = face_recognition.face_encodings(known_img)
+            try:
+                img_response = requests.get(img_url, timeout=10)
+                known_img = face_recognition.load_image_file(BytesIO(img_response.content))
+                encodings = face_recognition.face_encodings(known_img)
 
-            if not encodings:
-                print("No face found in cloud photo:", img_url)
-                continue
+                if not encodings:
+                    print("⚠️ No face detected in:", img_url)
+                    continue
 
-            matches = face_recognition.compare_faces(encodings, selfie_encoding, tolerance=0.55)
-            if True in matches:
-                print("✅ MATCH FOUND:", img_url)
-                matched_photos.append(img_url)
+                matches = face_recognition.compare_faces(encodings, selfie_encoding, tolerance=0.55)
+                if True in matches:
+                    print(f"✅ MATCH FOUND → {img_url}")
+                    matched_photos.append(img_url)
 
+            except Exception as err:
+                print(f"⚠️ Error processing image {index}: {err}")
+
+        # --- Save and show results ---
         session["matches"] = matched_photos
-        print("🎯 FINAL MATCHES:", matched_photos)
+        print(f"🎯 FINAL MATCHES FOUND: {len(matched_photos)}")
+        for m in matched_photos:
+            print("   →", m)
 
+        print("✅ Matches saved in session. Redirecting to result page.\n")
         return redirect(url_for("result"))
 
     except Exception as e:
-        print("❌ ERROR:", e)
+        print(f"❌ SERVER ERROR: {e}\n")
         return "Server error", 500
-
 
 app.secret_key = "ashik_smartpix_secret"
 

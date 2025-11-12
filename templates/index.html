@@ -45,7 +45,6 @@ function stopCamera(){
 
 // CAPTURE SELFIE
 captureBtn.onclick = ()=>{
-
   spinner.style.display="block";
   captureBtn.style.display="none";
 
@@ -56,21 +55,22 @@ captureBtn.onclick = ()=>{
   stopCamera();
 
   canvas.toBlob((blob)=>{
-
     const fd = new FormData();
     fd.append("file", blob, "selfie.jpg");
 
-    const event = "{{ event }}";  // flask gives correct event
+    const event = "{{ event }}";  // Flask injects the actual event name (e.g. event_A)
+    console.log("📸 Uploading selfie for event:", event);
 
-    fetch('/upload/${event})', {method:"POST", body:fd})
-      .then(res=>{
-        window.location.href="/result"; // after matching go result page
+    fetch(`/upload/${event}`, { method: "POST", body: fd })
+      .then(res => {
+        window.location.href = "/result"; // Redirect to result page after matching
       })
-      .catch(_=>{
-        alert("server error");
+      .catch(err => {
+        console.error("❌ Upload error:", err);
+        alert("Server error, please try again.");
       });
 
-  },"image/jpeg");
+  }, "image/jpeg");
 }
 </script>
 </body>
