@@ -5,32 +5,105 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>💍 ASHI SmartPix</title>
   <link rel="icon" type="image/x-icon" href="{{ url_for('static', filename='favicon.png') }}">
+  <style>
+    body {
+      text-align: center;
+      font-family: Poppins, sans-serif;
+      background: #fff0f5;
+      margin: 0;
+    }
+
+    h1 {
+      margin-top: 25px;
+      color: #b83b5e;
+      font-size: 2rem;
+    }
+
+    #captureBtn {
+      background: #ff6b81;
+      color: white;
+      padding: 14px 28px;
+      border: none;
+      font-size: 18px;
+      border-radius: 30px;
+      margin-top: 20px;
+      cursor: pointer;
+      transition: 0.3s;
+    }
+
+    #captureBtn:hover {
+      background: #ff4d6d;
+    }
+
+    /* Circular Loader Styles */
+    .loader-container {
+      display: none;
+      margin-top: 50px;
+      text-align: center;
+    }
+
+    .circular-loader {
+      width: 120px;
+      height: 120px;
+      border: 10px solid #ffe5ec;
+      border-top: 10px solid #ff6b81;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+      margin: 0 auto;
+    }
+
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+
+    .progress-text {
+      margin-top: 20px;
+      font-size: 20px;
+      color: #b83b5e;
+      font-weight: 600;
+    }
+
+    .done-text {
+      color: #4caf50;
+      font-size: 22px;
+      font-weight: bold;
+      margin-top: 15px;
+    }
+
+  </style>
 </head>
 
-<body style="text-align:center;font-family:Poppins;background:#fff0f5;margin:0;">
-
-  <h1 style="margin-top:25px;color:#b83b5e;font-size:2rem;">💍 ASHI SmartPix</h1>
+<body>
+  <h1>💍 ASHI SmartPix</h1>
   <p>Take a selfie to find your special memories instantly 💞</p>
 
   <video id="camera" autoplay playsinline style="width:80%;max-width:420px;border-radius:18px;border:3px solid #ff6b81;"></video>
   <canvas id="canvas" style="display:none;"></canvas><br>
 
-  <button id="captureBtn" style="background:#ff6b81;color:white;padding:14px 28px;border:none;font-size:18px;border-radius:30px;margin-top:20px;">🎯 Capture & Find Photos</button>
+  <button id="captureBtn">🎯 Capture & Find Photos</button>
 
-  <div id="spinner" style="display:none;margin-top:40px;font-size:18px;color:#e63946;">Please wait... Scanning photos 🤖</div>
+  <!-- Loader Section -->
+  <div class="loader-container" id="loaderSection">
+    <div class="circular-loader" id="circle"></div>
+    <div class="progress-text" id="progressText">🧠 Matching photos... 0%</div>
+    <div class="done-text" id="doneText" style="display:none;">✅ Matching Complete! Redirecting...</div>
+  </div>
 
 <script>
 const video = document.getElementById("camera");
 const canvas = document.getElementById("canvas");
-const spinner = document.getElementById("spinner");
 const captureBtn = document.getElementById("captureBtn");
+const loaderSection = document.getElementById("loaderSection");
+const progressText = document.getElementById("progressText");
+const doneText = document.getElementById("doneText");
 
 // Start camera
 async function startCamera(){
-  try{
+  try {
     const stream = await navigator.mediaDevices.getUserMedia({video:true});
     video.srcObject = stream;
-  }catch(e){
+  } catch (e) {
     alert("Allow camera access to continue");
   }
 }
@@ -40,36 +113,56 @@ startCamera();
 function stopCamera(){
   const stream = video.srcObject;
   if(stream) stream.getTracks().forEach(t=>t.stop());
-  video.srcObject=null;
+  video.srcObject = null;
 }
 
-// CAPTURE SELFIE
-captureBtn.onclick = ()=>{
-  spinner.style.display="block";
-  captureBtn.style.display="none";
+// Circular progress simulation
+function startCircularProgress(duration = 30000) {
+  loaderSection.style.display = "block";
+  let progress = 0;
+  const steps = 100;
+  const interval = duration / steps;
 
+  const progressInterval = setInterval(() => {
+    progress += 1;
+    progressText.innerText = `🧠 Matching photos... ${progress}%`;
+
+    if (progress >= 100) {
+      clearInterval(progressInterval);
+      progressText.style.display = "none";
+      doneText.style.display = "block";
+    }
+  }, interval);
+}
+
+// Capture and upload selfie
+captureBtn.onclick = () => {
+  captureBtn.style.display = "none";
+  startCircularProgress();
+  
   const ctx = canvas.getContext("2d");
   canvas.width = video.videoWidth;
   canvas.height = video.videoHeight;
-  ctx.drawImage(video,0,0,canvas.width,canvas.height);
+  ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
   stopCamera();
 
-  canvas.toBlob((blob)=>{
+  canvas.toBlob((blob) => {
     const fd = new FormData();
     fd.append("file", blob, "selfie.jpg");
 
-    const event = "{{ event }}";  // Flask injects the actual event name (e.g. event_A)
+    const event = "{{ event }}";  // Flask injects event name
     console.log("📸 Uploading selfie for event:", event);
 
     fetch(`/upload/${event}`, { method: "POST", body: fd })
       .then(res => {
-        window.location.href = "/result"; // Redirect to result page after matching
+        setTimeout(() => {
+          window.location.href = "/result";
+        }, 6500); // wait until animation completes
       })
       .catch(err => {
         console.error("❌ Upload error:", err);
         alert("Server error, please try again.");
       });
-
   }, "image/jpeg");
 }
 </script>
