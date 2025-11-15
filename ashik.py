@@ -280,6 +280,35 @@ def event_upload():
         return render_template("dashboard.html", event=event, filename=filename, guest_link=guest_link)
     return render_template("event_upload.html", event=event)
 
+#after up
+@app.route("/upload_single", methods=["POST"])
+def upload_single():
+    event = session.get("event")
+    file = request.files.get("file")
+
+    if not file:
+        return "No file", 400
+
+    img = Image.open(file.stream)
+    img = img.convert("RGB")
+    img.thumbnail((2048, 2048))
+
+    buffer = BytesIO()
+    img.save(buffer, format="JPEG", quality=85)
+    buffer.seek(0)
+
+    cloudinary.uploader.upload(
+        buffer,
+        folder=f"{event}/known_faces",
+        resource_type="image"
+    )
+
+    return "OK"
+##final---
+@app.route("/upload_complete")
+def upload_complete():
+    return redirect(url_for("dashboard"))
+
 # Guest page (selfie capture UI)
 @app.route("/guest/<event>", methods=["GET"])
 def guest(event):

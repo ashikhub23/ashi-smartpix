@@ -35,21 +35,10 @@
       to { opacity: 1; transform: translateY(0); }
     }
 
-    h2 {
-      margin-bottom: 10px;
-      font-size: 24px;
-    }
+    h2 { margin-bottom: 10px; font-size: 24px; }
+    p { color: #ddd; margin-bottom: 20px; }
 
-    p {
-      color: #ddd;
-      margin-bottom: 20px;
-    }
-
-    input[type="file"] {
-      margin: 15px 0;
-      color: #fff;
-      font-size: 14px;
-    }
+    input[type="file"] { margin: 15px 0; color: #fff; font-size: 14px; }
 
     button {
       margin-top: 20px;
@@ -68,46 +57,23 @@
       box-shadow: 0 0 15px rgba(0, 255, 255, 0.6);
     }
 
-    .btn-secondary {
-      margin-top: 25px;
-      background: rgba(255, 255, 255, 0.2);
-      color: #fff;
-      border-radius: 25px;
-      padding: 10px 22px;
-      display: inline-block;
-      text-decoration: none;
-      transition: background 0.3s ease;
-    }
-
-    .btn-secondary:hover {
-      background: rgba(0, 255, 255, 0.4);
-    }
-
-    /* 🌟 Toast Popup Style */
-    .toast {
-      visibility: hidden;
-      min-width: 280px;
-      margin-left: -140px;
-      background: rgba(0, 255, 150, 0.2);
-      color: #00ffa1;
+    /* Progress Bar */
+    #progressBox {
+      display: none;
+      margin-top: 20px;
+      width: 100%;
       text-align: center;
-      border-radius: 8px;
-      padding: 10px;
-      position: fixed;
-      z-index: 1;
-      left: 50%;
-      top: 30px;
-      font-size: 16px;
-      border: 1px solid rgba(0, 255, 150, 0.6);
-      backdrop-filter: blur(10px);
-      transition: all 0.5s ease;
-      opacity: 0;
     }
 
-    .toast.show {
-      visibility: visible;
-      opacity: 1;
-      top: 50px;
+    #progressText {
+      font-size: 16px;
+      margin-bottom: 10px;
+    }
+
+    #progressBar {
+      width: 100%;
+      height: 20px;
+      border-radius: 10px;
     }
   </style>
 </head>
@@ -116,26 +82,57 @@
     <h2>📸 Upload Event Photos</h2>
     <p>Event: <b>{{ event }}</b></p>
 
-    <form method="POST" enctype="multipart/form-data" id="uploadForm">
-      <input type="file" name="files[]" multiple required />
-      <br />
-      <button type="submit">Upload Photos</button>
-    </form>
+    <!-- Updated File Input -->
+    <input type="file" id="files" multiple required />
 
-    <!-- 🟢 Go to QR Section -->
-    
+    <button onclick="startUpload()">Upload Photos</button>
 
-  <!-- ✅ Toast Notification -->
-  <div id="toast" class="toast">✅ Uploaded Successfully!</div>
+    <!-- REAL PROGRESS BAR -->
+    <div id="progressBox">
+      <h3 id="progressText">Uploading...</h3>
+      <progress id="progressBar" value="0" max="100"></progress>
+    </div>
 
-  <script>
-    // Show the toast message after successful upload
-    const toast = document.getElementById("toast");
-    const urlParams = new URLSearchParams(window.location.search);
-    if (urlParams.get("upload") === "success") {
-      toast.classList.add("show");
-      setTimeout(() => toast.classList.remove("show"), 3000);
+    <footer>
+      <p>© 2025 Ashi SmartPix | AI-Driven Event Photography</p>
+    </footer>
+  </div>
+
+<script>
+async function startUpload() {
+    let files = document.getElementById("files").files;
+
+    if (files.length === 0) {
+        alert("Please select images");
+        return;
     }
-  </script>
+
+    document.getElementById("progressBox").style.display = "block";
+
+    let total = files.length;
+    let uploaded = 0;
+
+    for (let i = 0; i < total; i++) {
+
+        let formData = new FormData();
+        formData.append("file", files[i]);
+
+        await fetch("/upload_single", {
+            method: "POST",
+            body: formData
+        });
+
+        uploaded++;
+        let percent = Math.round((uploaded / total) * 100);
+
+        document.getElementById("progressText").innerText =
+            `Uploading ${uploaded} / ${total}`;
+        document.getElementById("progressBar").value = percent;
+    }
+
+    window.location.href = "/upload_complete";
+}
+</script>
+
 </body>
 </html>
