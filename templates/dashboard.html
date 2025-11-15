@@ -55,26 +55,6 @@
       margin-bottom: 25px;
     }
 
-    .link-box {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 8px;
-      margin-bottom: 15px;
-    }
-
-    a.link {
-      color: #00e0ff;
-      text-decoration: none;
-      word-break: break-all;
-      font-size: 14px;
-      transition: color 0.3s ease;
-    }
-
-    a.link:hover {
-      color: #00ffff;
-    }
-
     .copy-btn {
       background: rgba(255, 255, 255, 0.2);
       border: none;
@@ -82,30 +62,10 @@
       border-radius: 8px;
       padding: 6px 10px;
       cursor: pointer;
-      transition: background 0.3s ease;
     }
 
     .copy-btn:hover {
       background: rgba(0, 255, 255, 0.4);
-    }
-
-    .popup {
-      position: absolute;
-      top: -20px;
-      right: 10px;
-      background: rgba(0, 255, 150, 0.8);
-      color: #000;
-      padding: 5px 10px;
-      border-radius: 6px;
-      font-size: 13px;
-      opacity: 0;
-      transform: translateY(-10px);
-      transition: opacity 0.4s ease, transform 0.4s ease;
-    }
-
-    .popup.show {
-      opacity: 1;
-      transform: translateY(0);
     }
 
     .btn {
@@ -116,7 +76,6 @@
       padding: 12px 25px;
       font-size: 15px;
       cursor: pointer;
-      transition: all 0.3s ease;
       margin-top: 20px;
     }
 
@@ -132,30 +91,30 @@
     }
   </style>
 </head>
+
 <body>
+
   <div class="dashboard">
-    <!-- 👑 SmartPix Logo -->
     <img src="{{ url_for('static', filename='logo.jpg') }}" alt="Ashi SmartPix Logo" class="logo">
 
     <h1>{{ event }}</h1>
     <h2>📸 Upload Successful!</h2>
 
     <p>Guests can use this link to access their event photos:</p>
-    <div class="event-link-box">
 
-    <p id="eventLink" style="font-size:14px;word-break:break-all;">{{ guest_link }}</p>
-<button class="copy-btn" onclick="copyLink()">📋 Copy Link</button>
+    <p id="eventLink" style="font-size:14px;word-break:break-all;">
+      {{ guest_link }}
+    </p>
 
+    <button class="copy-btn" onclick="copyLink()">📋 Copy Link</button>
 
     <form method="POST">
-        <input type="hidden" name="event" value="{{ event }}">
-        <button type="submit">🔄 Generate QR Again</button>
+      <input type="hidden" name="event" value="{{ event }}">
+      <button type="submit" class="btn">🔄 Generate QR Again</button>
     </form>
 
     <button class="btn" onclick="downloadQR('{{ filename }}')">⬇ Download QR Code</button>
-
-</div>
-
+  </div>
 
   <footer>
     <p>© 2025 Ashi SmartPix | AI-Driven Event Photography</p>
